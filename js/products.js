@@ -95,3 +95,8 @@ async function main() {
 }
 
 main();
+
+document.addEventListener("DOMContentLoaded", () => {
+  const lazyImages = document.querySelectorAll("img.lazy");
+  lazyImages.forEach((img) => imageObserver.observe(img));
+});
