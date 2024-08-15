@@ -1,3 +1,16 @@
+// 이미지 지연 로딩을 위한 IntersectionObserver 설정
+const imageObserver = new IntersectionObserver((entries, observer) => {
+  entries.forEach((entry) => {
+    if (entry.isIntersecting) {
+      const img = entry.target;
+      img.src = img.dataset.src;
+      img.srcset = img.dataset.srcset;
+      img.classList.remove("lazy");
+      observer.unobserve(img);
+    }
+  });
+});
+
 async function loadProducts() {
   const response = await fetch("https://fakestoreapi.com/products");
   const products = await response.json();
@@ -5,64 +18,80 @@ async function loadProducts() {
 }
 
 function displayProducts(products) {
-  // Find the container where products will be displayed
   const container = document.querySelector("#all-products .container");
+  const fragment = document.createDocumentFragment();
 
-  // Iterate over each product and create the HTML structure safely
   products.forEach((product) => {
-    // Create the main product div
-    const productElement = document.createElement("div");
-    productElement.classList.add("product");
+    const productElement = createProductElement(product);
+    fragment.appendChild(productElement);
+  });
 
-    // Create the product picture div
-    const pictureDiv = document.createElement("div");
-    pictureDiv.classList.add("product-picture");
-    const img = document.createElement("img");
-    img.src = product.image;
-    img.alt = `product: ${product.title}`;
-    img.width = 250;
-    img.height = 250;
-    pictureDiv.appendChild(img);
+  container.appendChild(fragment);
 
-    // Create the product info div
-    const infoDiv = document.createElement("div");
-    infoDiv.classList.add("product-info");
+  // 이미지 지연 로딩 시작
+  document
+    .querySelectorAll("img.lazy")
+    .forEach((img) => imageObserver.observe(img));
+}
 
-    const category = document.createElement("h5");
-    category.classList.add("categories");
-    category.textContent = product.category;
+function createProductElement(product) {
+  const productElement = document.createElement("div");
+  productElement.className = "product";
+  productElement.innerHTML = `
+      <div class="product-picture">
+        <img class="lazy" 
+             src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" 
+             data-src="${product.image}"
+             data-srcset="${product.image} 1x, ${product.image.replace(
+    ".jpg",
+    "@2x.jpg"
+  )} 2x"
+             alt="product: ${product.title}" 
+             width="250" 
+            >
+      </div>
+      <div class="product-info">
+        <h5 class="categories">${escapeHTML(product.category)}</h5>
+        <h4 class="title">${escapeHTML(product.title)}</h4>
+        <h3 class="price"><span>US$ ${product.price.toFixed(2)}</span></h3>
+        <button>Add to bag</button>
+      </div>
+    `;
+  return productElement;
+}
 
-    const title = document.createElement("h4");
-    title.classList.add("title");
-    title.textContent = product.title;
+// HTML 이스케이프 함수
+function escapeHTML(str) {
+  return str.replace(
+    /[&<>'"]/g,
+    (tag) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "'": "&#39;",
+        '"': "&quot;",
+      }[tag] || tag)
+  );
+}
 
-    const price = document.createElement("h3");
-    price.classList.add("price");
-    const priceSpan = document.createElement("span");
-    priceSpan.textContent = `US$ ${product.price}`;
-    price.appendChild(priceSpan);
-
-    const button = document.createElement("button");
-    button.textContent = "Add to bag";
-
-    // Append elements to the product info div
-    infoDiv.appendChild(category);
-    infoDiv.appendChild(title);
-    infoDiv.appendChild(price);
-    infoDiv.appendChild(button);
-
-    // Append picture and info divs to the main product element
-    productElement.appendChild(pictureDiv);
-    productElement.appendChild(infoDiv);
-
-    // Append the new product element to the container
-    container.appendChild(productElement);
+// 무거운 연산을 비동기적으로 처리
+function heavyOperation() {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      for (let i = 0; i < 10000000; i++) {
+        const temp = Math.sqrt(i) * Math.sqrt(i);
+      }
+      resolve();
+    }, 0);
   });
 }
 
-loadProducts();
-
-// Simulate heavy operation. It could be a complex price calculation.
-for (let i = 0; i < 10000000; i++) {
-  const temp = Math.sqrt(i) * Math.sqrt(i);
+// 메인 실행 함수
+async function main() {
+  await loadProducts();
+  await heavyOperation();
+  console.log("All operations completed");
 }
+
+main();
